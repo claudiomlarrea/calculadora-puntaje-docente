@@ -1,45 +1,102 @@
-
 import streamlit as st
-from analyzer import evaluar_cv
-from pdf_reader import extraer_texto_pdf
-from extractor import detectar_items
 import pandas as pd
-from io import BytesIO
+import xlsxwriter
+import io
 
-st.set_page_config(page_title="Calculadora de Puntaje Docente", layout="centered")
-st.title("📊 Calculadora de Puntaje Docente e Investigador")
+# Configuración inicial
+st.set_page_config(page_title="Valorador Docente - UCCuyo", layout="centered")
+st.title("🎓 Universidad Católica de Cuyo")
+st.subheader("Secretaría de Investigación")
+st.markdown("### Valorador Docente - Resolución 897")
 
-archivo_pdf = st.file_uploader("📄 Cargar CV en PDF", type=["pdf"])
+# Ingreso del nombre del docente
+docente = st.text_input("Nombre completo del docente:")
 
-def convertir_a_excel(puntos, total, categoria):
-    df = pd.DataFrame.from_dict(puntos, orient='index', columns=['Puntaje'])
-    df.loc['TOTAL'] = total
-    df.loc['CATEGORÍA'] = categoria
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Resultados')
+# Diccionario de bloques con ítems y puntajes máximos
+bloques = {
+    "Formación Académica (Max: 480)": [
+        ("Títulos de Grado", 30),
+        ("Cursos de Postgrado", 75),
+        ("Especializaciones", 75),
+        ("Maestrías", 150),
+        ("Doctorados", 250)
+    ],
+    "Docencia Universitaria (Max: 350)": [
+        ("Profesor Titular", 200),
+        ("Profesor Asociado", 160),
+        ("Profesor Adjunto", 120),
+        ("JTP", 80),
+        ("Ayudante 1ra", 40),
+        ("Tribunal Concursos", 60),
+        ("Docencia en Postgrados acreditados", 100),
+        ("Docencia en Postgrados no acreditados", 50),
+        ("Tribunal de Tesis", 60)
+    ],
+    "Investigación Científica (Max: 350)": [
+        ("Dirección de Programa", 200),
+        ("Co-dirección de Programa", 150),
+        ("Dirección de Proyecto", 150),
+        ("Co-dirección Proyecto", 100),
+        ("Integrante con al menos 1 año", 60),
+        ("Auxiliar, becario o adscripto", 30)
+    ]
+}
+
+puntajes_totales = {}
+total_general = 0
+
+st.markdown("---")
+
+# Carga de puntajes por bloque
+def ingresar_bloque(nombre, items):
+    st.markdown(f"#### {nombre}")
+    subtotal = 0
+    for item, maximo in items:
+        valor = st.number_input(f"{item} (hasta {maximo} pts):", min_value=0, max_value=maximo, step=1, key=f"{nombre}-{item}")
+        subtotal += valor
+    st.markdown(f"**Subtotal: {subtotal} puntos**")
+    return subtotal
+
+for bloque, items in bloques.items():
+    subtotal = ingresar_bloque(bloque, items)
+    puntajes_totales[bloque] = subtotal
+    total_general += subtotal
+
+st.markdown("---")
+st.markdown(f"### Total general: **{total_general} puntos**")
+
+# Asignar categoría
+if total_general >= 900:
+    categoria = "Investigador Categoría I"
+elif total_general >= 700:
+    categoria = "Investigador Categoría II"
+elif total_general >= 500:
+    categoria = "Investigador Categoría III"
+elif total_general >= 300:
+    categoria = "Investigador en formación"
+else:
+    categoria = "No categorizado"
+
+st.success(f"Categoría alcanzada: **{categoria}**")
+
+# Generar Excel descargable
+if st.button("📥 Descargar informe Excel"):
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+    df = pd.DataFrame([
+        {"Bloque": bloque, "Puntaje obtenido": puntos, "Puntaje máximo": sum([p for _, p in bloques[bloque]])}
+        for bloque, puntos in puntajes_totales.items()
+    ])
+    df.loc[len(df.index)] = ["TOTAL GENERAL", total_general, ""]
+    df.loc[len(df.index)] = ["CATEGORÍA", categoria, ""]
+    df.to_excel(writer, index=False, sheet_name="Informe")
+    writer.close()
     output.seek(0)
-    return output
 
-if archivo_pdf is not None:
-    with open("temp_cv.pdf", "wb") as f:
-        f.write(archivo_pdf.read())
-
-    texto_extraido = extraer_texto_pdf("temp_cv.pdf")
-    respuestas = detectar_items(texto_extraido)
-
-    puntos, total, categoria = evaluar_cv(respuestas)
-
-    st.subheader("📌 Resultados de Evaluación")
-    for clave, valor in puntos.items():
-        st.write(f"**{clave.replace('_', ' ').capitalize()}**: {valor} puntos")
-    st.markdown(f"### 🧮 Puntaje Total: **{total} puntos**")
-    st.success(f"📌 Categoría asignada: **{categoria}**")
-
-    excel_data = convertir_a_excel(puntos, total, categoria)
     st.download_button(
-        label="⬇️ Descargar resultados en Excel",
-        data=excel_data,
-        file_name="resultado_evaluacion.xlsx",
+        label="Descargar informe personalizado",
+        data=output,
+        file_name=f"Informe_{docente.replace(' ', '_')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
