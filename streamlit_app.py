@@ -24,48 +24,43 @@ if archivo_pdf and nombre:
     texto_extraido = extraer_texto(archivo_pdf)
 
     if st.button("🧠 Evaluar CV"):
-        puntaje = calcular_puntaje(texto_extraido)
+    puntaje = calcular_puntaje(texto_extraido)
 
-        # Mostrar resultados
-        st.success(f"✅ Puntaje total estimado: **{puntaje} puntos**")
+    # Mostrar puntaje y categoría
+    st.success(f"✅ Puntaje total estimado: {puntaje} puntos")
 
-        # Categoría automática según puntaje
-        if puntaje >= 1500:
-            categoria = "INVESTIGADOR SUPERIOR"
-        elif puntaje >= 1000:
-            categoria = "INVESTIGADOR PRINCIPAL"
-        elif puntaje >= 600:
-            categoria = "INVESTIGADOR INDEPENDIENTE"
-        elif puntaje >= 300:
-            categoria = "INVESTIGADOR ADJUNTO"
-        elif puntaje >= 101:
-            categoria = "INVESTIGADOR ASISTENTE"
-        else:
-            categoria = "BECARIO DE INICIACIÓN"
+    # Categoría según puntaje
+    if puntaje >= 1500:
+        categoria = "INVESTIGADOR SUPERIOR"
+    elif puntaje >= 1000:
+        categoria = "INVESTIGADOR PRINCIPAL"
+    elif puntaje >= 600:
+        categoria = "INVESTIGADOR INDEPENDIENTE"
+    elif puntaje >= 300:
+        categoria = "INVESTIGADOR ADJUNTO"
+    elif puntaje >= 101:
+        categoria = "INVESTIGADOR ASISTENTE"
+    else:
+        categoria = "BECARIO DE INICIACIÓN"
 
-        st.info(f"📌 Categoría asignada: **{categoria}**")
-else:
-    st.warning("Por favor, completá el nombre del docente y cargá un archivo PDF para continuar.")
-import pandas as pd
-from io import BytesIO
+    st.info(f"📌 Categoría asignada: **{categoria}**")
 
-# Crear DataFrame con los resultados
-df = pd.DataFrame({
-    "Docente": [nombre],
-    "Puntaje total": [puntaje],
-    "Categoría asignada": [categoria]
-})
+    # Crear DataFrame e informe Excel
+    df = pd.DataFrame({
+        "Docente": [nombre],
+        "Puntaje total": [puntaje],
+        "Categoría asignada": [categoria]
+    })
 
-# Guardar en memoria como Excel
-output = BytesIO()
-with pd.ExcelWriter(output, engine="openpyxl") as writer:
-    df.to_excel(writer, index=False)
-output.seek(0)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False)
+    output.seek(0)
 
-# Botón para descargar
-st.download_button(
-    label="📥 Descargar informe en Excel",
-    data=output,
-    file_name=f"Evaluación_{nombre}.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+    st.download_button(
+        label="📥 Descargar informe en Excel",
+        data=output,
+        file_name=f"Evaluación_{nombre}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
