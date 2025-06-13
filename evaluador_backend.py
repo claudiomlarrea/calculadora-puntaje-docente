@@ -1,16 +1,21 @@
 import streamlit as st
 import pandas as pd
 import fitz  # PyMuPDF
+from io import BytesIO
 
+# Configuración de la app
 st.set_page_config(page_title="Evaluador de CV - Resolución 897", layout="centered")
 st.title("📄 Evaluador automático de CVs según Resolución 897")
 st.markdown("**Subí un PDF con el CV del docente. Se extraerá texto y se sugerirá una puntuación editable por ítem.**")
 
+# Entrada del usuario
 archivo_pdf = st.file_uploader("📥 Cargar CV en PDF", type=["pdf"])
 nombre = st.text_input("Nombre completo del docente evaluado")
 
+# Vector de respuestas por ítem (ítems 1 a 76)
 respuestas = [0] * 77
 
+# Función para extraer texto desde el PDF
 def extraer_texto(pdf_file):
     texto = ""
     with fitz.open(stream=pdf_file.read(), filetype="pdf") as doc:
@@ -18,6 +23,7 @@ def extraer_texto(pdf_file):
             texto += page.get_text()
     return texto.lower()
 
+# Diccionario de palabras clave por ítem
 palabras_clave = {
     1: ["título de grado", "farmacéutico", "licenciado", "ingeniero", "abogado"],
     2: ["especialización"],
@@ -35,6 +41,7 @@ palabras_clave = {
     72: ["innovación pedagógica"],
 }
 
+# Función principal de evaluación
 def evaluar_cv(respuestas):
     maximos = {
         "formacion_academica": 300,
@@ -87,7 +94,7 @@ def evaluar_cv(respuestas):
 
     return puntos, total, categoria
 
-# === APP ===
+# Interfaz principal
 if archivo_pdf and nombre:
     texto_extraido = extraer_texto(archivo_pdf)
 
@@ -109,9 +116,23 @@ if archivo_pdf and nombre:
         for clave, valor in puntos.items():
             st.markdown(f"- **{clave.replace('_', ' ').capitalize()}**: {valor} puntos")
 
+        # Crear DataFrame con resultados
         df = pd.DataFrame(list(puntos.items()), columns=["Categoría", "Puntaje"])
         df.loc[len(df)] = ["TOTAL", total]
         df.loc[len(df)] = ["CATEGORÍA", categoria]
-        st.download_button("📥 Descargar informe Excel", data=df.to_excel(index=False), file_name=f"Evaluación_{nombre}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+        # Crear Excel en memoria
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False)
+        output.seek(0)
+
+        # Botón de descarga
+        st.download_button(
+            label="📥 Descargar informe en Excel",
+            data=output,
+            file_name=f"Evaluación_{nombre}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 else:
     st.warning("Por favor, completá el nombre y cargá un archivo PDF para comenzar.")
