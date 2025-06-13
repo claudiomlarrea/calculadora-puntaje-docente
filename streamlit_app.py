@@ -4,6 +4,7 @@ import pandas as pd
 from io import BytesIO
 from evaluador_backend import extraer_items, calcular_total, clasificar
 
+
 # Configuración de la interfaz
 st.set_page_config(page_title="Evaluador de CV por IA", layout="centered")
 st.title("📄 Evaluador automático de CVs según Resolución 897")
@@ -27,7 +28,10 @@ if archivo_pdf and nombre:
 
     if st.button("🧠 Evaluar CV"):
         # Calcular puntaje con función del backend
-        puntaje = calcular_puntaje(texto_extraido)
+        resultados = extraer_items(texto_extraido)
+        puntaje = calcular_total(resultados)
+        categoria = clasificar(puntaje)
+
 
         st.success(f"✅ Puntaje total estimado: {puntaje} puntos")
 
@@ -68,4 +72,3 @@ if archivo_pdf and nombre:
         )
 else:
     st.warning("Por favor, completá el nombre del docente y cargá un archivo PDF para continuar.")
-
