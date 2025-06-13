@@ -2,7 +2,7 @@ import streamlit as st
 import fitz  # PyMuPDF
 import pandas as pd
 from io import BytesIO
-from evaluador_backend import calcular_puntaje
+from evaluador_backend import extraer_items, calcular_total, clasificar
 
 # Configuración de la interfaz
 st.set_page_config(page_title="Evaluador de CV por IA", layout="centered")
