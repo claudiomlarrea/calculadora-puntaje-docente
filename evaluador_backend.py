@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 import fitz
-from analyzer import evaluar_cv
 
 st.set_page_config(page_title="Evaluador de CV - Resolución 897", layout="centered")
 st.title("📄 Evaluador automático de CVs según Resolución 897")
