@@ -46,3 +46,26 @@ if archivo_pdf and nombre:
         st.info(f"📌 Categoría asignada: **{categoria}**")
 else:
     st.warning("Por favor, completá el nombre del docente y cargá un archivo PDF para continuar.")
+import pandas as pd
+from io import BytesIO
+
+# Crear DataFrame con los resultados
+df = pd.DataFrame({
+    "Docente": [nombre],
+    "Puntaje total": [puntaje],
+    "Categoría asignada": [categoria]
+})
+
+# Guardar en memoria como Excel
+output = BytesIO()
+with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    df.to_excel(writer, index=False)
+output.seek(0)
+
+# Botón para descargar
+st.download_button(
+    label="📥 Descargar informe en Excel",
+    data=output,
+    file_name=f"Evaluación_{nombre}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
